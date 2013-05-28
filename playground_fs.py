@@ -39,6 +39,10 @@ all_entries = {
 inode_count = llfuse.ROOT_INODE
 active_inodes = collections.defaultdict(int)
 
+# in bytes
+FS_SIZE = 10 * 1024 * 1024 * 1024
+MAX_INODES = 2 ** 32
+
 class Operations(llfuse.Operations):
     def statfs(self):
         st = llfuse.StatvfsData()
@@ -46,14 +50,13 @@ class Operations(llfuse.Operations):
         st.f_bsize = 512
         st.f_frsize = 512
 
-        size = sum([len(x.data) for x in all_entries.values()])
-        st.f_blocks = size // st.f_frsize
-        st.f_bfree = max(size // st.f_frsize, 1024)
+        used_size = sum([len(x.data) for x in all_entries.values()])
+        st.f_blocks = FS_SIZE // st.f_bsize
+        st.f_bfree = (FS_SIZE - used_size) // st.f_bsize
         st.f_bavail = st.f_bfree
 
-        inodes = len(all_entries)
-        st.f_files = inodes
-        st.f_ffree = max(inodes , 100)
+        st.f_files = MAX_INODES
+        st.f_ffree = MAX_INODES - len(all_entries)
         st.f_favail = st.f_ffree
 
         return st
